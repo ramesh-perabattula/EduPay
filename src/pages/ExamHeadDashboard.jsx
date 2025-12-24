@@ -6,7 +6,7 @@ import { Bell, Calendar, PlusCircle, CheckCircle } from 'lucide-react';
 const ExamHeadDashboard = () => {
     const [notifications, setNotifications] = useState([]);
     const [formData, setFormData] = useState({
-        title: '', year: '', semester: '', examFeeAmount: '', startDate: '', endDate: '', description: ''
+        title: '', year: '', semester: '', examFeeAmount: '', startDate: '', endDate: '', description: '', examType: 'regular'
     });
 
     const [editModalData, setEditModalData] = useState(null);
@@ -29,7 +29,7 @@ const ExamHeadDashboard = () => {
         try {
             await api.post('/admin/notifications', formData);
             toast.success('Notification Created!');
-            setFormData({ title: '', year: '', semester: '', examFeeAmount: '', startDate: '', endDate: '', description: '' });
+            setFormData({ title: '', year: '', semester: '', examFeeAmount: '', startDate: '', endDate: '', description: '', examType: 'regular' });
             fetchNotifications();
         } catch (error) {
             toast.error('Failed to create notification');
@@ -128,15 +128,28 @@ const ExamHeadDashboard = () => {
                         Create Exam Notification
                     </h2>
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Notification Title</label>
-                            <input
-                                type="text" required
-                                className="mt-1 block w-full rounded-lg border-gray-300 border p-2.5 focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm"
-                                placeholder="e.g. End Semester Exams Dec 2025"
-                                value={formData.title}
-                                onChange={e => setFormData({ ...formData, title: e.target.value })}
-                            />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Notification Title</label>
+                                <input
+                                    type="text" required
+                                    className="mt-1 block w-full rounded-lg border-gray-300 border p-2.5 focus:ring-indigo-500 focus:border-indigo-500 transition shadow-sm"
+                                    placeholder="e.g. End Semester Exams Dec 2025"
+                                    value={formData.title}
+                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Exam Type</label>
+                                <select
+                                    className="mt-1 block w-full rounded-lg border-gray-300 border p-2.5 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    value={formData.examType}
+                                    onChange={e => setFormData({ ...formData, examType: e.target.value })}
+                                >
+                                    <option value="regular">Regular Exam</option>
+                                    <option value="supplementary">Supplementary (Backlog)</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -10,7 +10,7 @@ const RegistrarDashboard = () => {
     const [formData, setFormData] = useState({
         username: '', password: '', name: '', department: 'CSE',
         currentYear: 1, quota: 'government', entry: 'regular', email: '',
-        transportOpted: false, assignedCollegeFee: 0, assignedTransportFee: 0
+        transportOpted: false, hostelOpted: false, assignedCollegeFee: 0, assignedTransportFee: 0, assignedHostelFee: 0
     });
 
     // Removed regulations and batches arrays as they are no longer needed
@@ -150,6 +150,23 @@ const RegistrarDashboard = () => {
                                     <label className="block text-sm font-medium text-gray-700">Assign Transport Fee (₹)</label>
                                     <input type="number" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2"
                                         value={formData.assignedTransportFee} onChange={e => setFormData({ ...formData, assignedTransportFee: e.target.value })} />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Hostel Option */}
+                        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                            <div className="flex items-center mb-2">
+                                <input type="checkbox" id="hostel" className="h-4 w-4 text-orange-600 rounded"
+                                    checked={formData.hostelOpted} onChange={e => setFormData({ ...formData, hostelOpted: e.target.checked })} />
+                                <label htmlFor="hostel" className="ml-2 block text-sm font-medium text-gray-900">Opt for Hostel?</label>
+                            </div>
+
+                            {formData.hostelOpted && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Assign Hostel Fee (₹)</label>
+                                    <input type="number" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2"
+                                        value={formData.assignedHostelFee} onChange={e => setFormData({ ...formData, assignedHostelFee: e.target.value })} />
                                 </div>
                             )}
                         </div>

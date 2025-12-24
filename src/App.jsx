@@ -10,6 +10,9 @@ import PrincipalDashboard from './pages/PrincipalDashboard';
 import ExamHeadDashboard from './pages/ExamHeadDashboard';
 import TransportDashboard from './pages/TransportDashboard';
 import RegistrarDashboard from './pages/RegistrarDashboard';
+import LibrarianDashboard from './pages/LibrarianDashboard';
+import PlacementDashboard from './pages/PlacementDashboard';
+import HostelDashboard from './pages/HostelDashboard';
 
 function App() {
   return (
@@ -76,6 +79,36 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['registrar', 'admin']}>
                   <RegistrarDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Librarian Routes */}
+            <Route
+              path="/librarian/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['librarian', 'admin']}>
+                  <LibrarianDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Placement Routes */}
+            <Route
+              path="/placement/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['placement_officer', 'admin']}>
+                  <PlacementDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Hostel Routes */}
+            <Route
+              path="/hostel/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['hostel_warden', 'admin']}>
+                  <HostelDashboard />
                 </ProtectedRoute>
               }
             />

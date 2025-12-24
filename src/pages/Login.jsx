@@ -24,6 +24,9 @@ const Login = () => {
             else if (data.role === 'exam_head') navigate('/exam-head/dashboard');
             else if (data.role === 'transport_dept') navigate('/transport/dashboard');
             else if (data.role === 'registrar') navigate('/registrar/dashboard');
+            else if (data.role === 'librarian') navigate('/librarian/dashboard');
+            else if (data.role === 'placement_officer') navigate('/placement/dashboard');
+            else if (data.role === 'hostel_warden') navigate('/hostel/dashboard');
             else navigate('/');
 
         } catch (error) {

@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { CreditCard, CheckCircle, AlertCircle, Clock, Camera } from 'lucide-react';
+import { CreditCard, CheckCircle, AlertCircle, Clock, Camera, Wallet, BookOpen, Bus, Book, Briefcase, Home } from 'lucide-react';
 
 const StudentDashboard = () => {
     const [profile, setProfile] = useState(null);
     const [eligibility, setEligibility] = useState(null);
     const [notifications, setNotifications] = useState([]);
     const [payments, setPayments] = useState([]);
+    const [libraryRecords, setLibraryRecords] = useState([]);
     const [activeFeeYear, setActiveFeeYear] = useState(1);
+    const [feeTab, setFeeTab] = useState('college');
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
 
@@ -23,17 +25,19 @@ const StudentDashboard = () => {
 
     const fetchData = async () => {
         try {
-            const [profileRes, eligibilityRes, notificationsRes, paymentsRes] = await Promise.all([
+            const [profileRes, eligibilityRes, notificationsRes, paymentsRes, libraryRes] = await Promise.all([
                 api.get('/students/profile'),
                 api.get('/students/eligibility'),
                 api.get('/admin/notifications'), // Fetch active notifications
-                api.get('/payments/my-history') // Fetch student payments
+                api.get('/payments/my-history'), // Fetch student payments
+                api.get('/library/my-books') // Fetch library records
             ]);
             setProfile(profileRes.data);
             setActiveFeeYear(profileRes.data.currentYear || 1);
             setEligibility(eligibilityRes.data);
             setNotifications(notificationsRes.data);
             setPayments(paymentsRes.data);
+            setLibraryRecords(libraryRes.data);
         } catch (error) {
             toast.error('Failed to load data');
         } finally {
@@ -123,7 +127,7 @@ const StudentDashboard = () => {
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-            <h1 className="text-4xl font-serif font-bold text-brand-900 tracking-tight">Student Dashboard</h1>
+
 
             {/* Profile Summary */}
             <div className="bg-white rounded-xl shadow-lg border-l-4 border-brand-500 p-8 flex flex-wrap gap-8 items-center hover:shadow-xl transition-shadow duration-300">
@@ -184,75 +188,221 @@ const StudentDashboard = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Semester-wise Fee Details - Left Column */}
-                <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-6 border border-gray-100">
-                        <h3 className="text-xl font-serif font-bold text-gray-900 mb-5 flex items-center border-b border-gray-100 pb-3">
-                            <CreditCard className="mr-3 h-5 w-5 text-brand-600" />
-                            Fee Structure
-                        </h3>
+            {/* Fee Details Tabs Section */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                <div className="bg-gray-50/50 border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                    <h3 className="text-xl font-serif font-bold text-gray-900 flex items-center">
+                        <Wallet className="mr-3 h-6 w-6 text-brand-600" />
+                        Fee Details
+                    </h3>
+                    <div className="bg-white p-1 rounded-lg border border-gray-200 flex shadow-sm">
+                        <button
+                            onClick={() => setFeeTab('college')}
+                            className={`px-4 py-2 rounded-md text-sm font-bold transition-all duration-200 flex items-center ${feeTab === 'college'
+                                ? 'bg-brand-600 text-white shadow-md'
+                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                                }`}
+                        >
+                            <BookOpen className="w-4 h-4 mr-2" />
+                            Admission Fee
+                        </button>
+                        <button
+                            onClick={() => setFeeTab('transport')}
+                            className={`px-4 py-2 rounded-md text-sm font-bold transition-all duration-200 flex items-center ${feeTab === 'transport'
+                                ? 'bg-brand-600 text-white shadow-md'
+                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                                }`}
+                        >
+                            <Bus className="w-4 h-4 mr-2" />
+                            Transport Fee
+                        </button>
+                        <button
+                            onClick={() => setFeeTab('library')}
+                            className={`px-4 py-2 rounded-md text-sm font-bold transition-all duration-200 flex items-center ${feeTab === 'library'
+                                ? 'bg-brand-600 text-white shadow-md'
+                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                                }`}
+                        >
+                            <Book className="w-4 h-4 mr-2" />
+                            Library
+                        </button>
+                        <button
+                            onClick={() => setFeeTab('placement')}
+                            className={`px-4 py-2 rounded-md text-sm font-bold transition-all duration-200 flex items-center ${feeTab === 'placement'
+                                ? 'bg-brand-600 text-white shadow-md'
+                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                                }`}
+                        >
+                            <Briefcase className="w-4 h-4 mr-2" />
+                            Placement Fee
+                        </button>
+                        <button
+                            onClick={() => setFeeTab('hostel')}
+                            className={`px-4 py-2 rounded-md text-sm font-bold transition-all duration-200 flex items-center ${feeTab === 'hostel'
+                                ? 'bg-brand-600 text-white shadow-md'
+                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                                }`}
+                        >
+                            <Home className="w-4 h-4 mr-2" />
+                            Hostel Fee
+                        </button>
+                    </div>
+                </div>
 
-                        {/* Year Tabs */}
-                        <div className="flex space-x-1 mb-6 bg-gray-50 p-1 rounded-lg">
-                            {[1, 2, 3, 4].map(year => (
-                                <button
-                                    key={year}
-                                    onClick={() => setActiveFeeYear(year)}
-                                    className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all duration-200 uppercase tracking-wide ${activeFeeYear === year
-                                        ? 'bg-white text-brand-700 shadow-sm ring-1 ring-black/5'
-                                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                                        }`}
-                                >
-                                    Year {year}
-                                </button>
-                            ))}
-                        </div>
+                <div className="p-8">
+                    {(() => {
+                        if (feeTab === 'library') {
+                            const activeBooks = libraryRecords.filter(r => r.status === 'borrowed' || r.status === 'overdue');
+                            const returnedBooks = libraryRecords.filter(r => r.status === 'returned');
 
-                        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                            {[...new Set(profile?.feeRecords?.filter(r => r.year === activeFeeYear).map(r => r.semester))].sort().map(sem => {
-                                const semRecords = profile?.feeRecords?.filter(r => r.year === activeFeeYear && r.semester === sem);
+                            return (
+                                <div className="space-y-6">
+                                    <h4 className="text-lg font-serif font-bold text-gray-800 flex items-center">
+                                        <Book className="mr-2 h-5 w-5 text-gray-400" />
+                                        Pending Returns ({activeBooks.length})
+                                    </h4>
 
-                                // Group by Fee Type within Semester if needed, or just list them
-                                return (
-                                    <div key={sem} className="border border-brand-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                                        <div className="bg-brand-50/50 px-4 py-3 border-b border-brand-100 flex justify-between items-center">
-                                            <span className="font-bold text-brand-900 text-sm">Semester {sem}</span>
-                                        </div>
-                                        <div className="p-4 space-y-4">
-                                            {semRecords.map((record, idx) => (
-                                                <div key={idx} className="flex flex-col space-y-2">
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-gray-700 font-semibold text-sm capitalize">{record.feeType} Fee</span>
-                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${record.status === 'paid' ? 'bg-green-100 text-green-700' : record.status === 'partial' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
-                                                            {record.status === 'paid' ? 'Paid' : record.status === 'partial' ? 'Partial' : 'Pending'}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {activeBooks.length > 0 ? activeBooks.map(book => (
+                                            <div key={book._id} className="border border-red-100 bg-red-50/30 rounded-xl p-4 flex justify-between items-start">
+                                                <div>
+                                                    <h5 className="font-bold text-gray-900">{book.bookTitle}</h5>
+                                                    <p className="text-xs text-gray-500 font-mono mb-2">ID: {book.bookId}</p>
+                                                    <p className="text-sm text-gray-600">Due: <span className="font-bold">{new Date(book.dueDate).toLocaleDateString()}</span></p>
+                                                </div>
+                                                <span className="px-2 py-1 rounded-md bg-white border border-red-200 text-red-600 text-xs font-bold uppercase tracking-wide">
+                                                    {book.status}
+                                                </span>
+                                            </div>
+                                        )) : (
+                                            <p className="col-span-full text-center text-gray-500 italic py-4">No pending books.</p>
+                                        )}
+                                    </div>
+
+                                    {returnedBooks.length > 0 && (
+                                        <>
+                                            <h4 className="text-lg font-serif font-bold text-gray-800 flex items-center mt-6">
+                                                <CheckCircle className="mr-2 h-5 w-5 text-gray-400" />
+                                                Return History
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {returnedBooks.map(book => (
+                                                    <div key={book._id} className="border border-gray-100 bg-gray-50/30 rounded-xl p-4 flex justify-between items-start opacity-75">
+                                                        <div>
+                                                            <h5 className="font-bold text-gray-700">{book.bookTitle}</h5>
+                                                            <p className="text-xs text-gray-500 font-mono mb-1">ID: {book.bookId}</p>
+                                                            <p className="text-xs text-gray-500">Returned: {new Date(book.returnDate).toLocaleDateString()}</p>
+                                                        </div>
+                                                        <span className="px-2 py-1 rounded-md bg-gray-100 text-gray-500 text-xs font-bold uppercase tracking-wide">
+                                                            Returned
                                                         </span>
                                                     </div>
-                                                    <div className="flex justify-between text-xs text-gray-500 font-medium">
-                                                        <span>Due: ₹{record.amountDue.toLocaleString()}</span>
-                                                        <span>Paid: ₹{record.amountPaid?.toLocaleString() || 0}</span>
-                                                    </div>
-                                                    {/* Progress Bar */}
-                                                    <div className="w-full bg-gray-100 rounded-full h-2 shadow-inner">
-                                                        <div
-                                                            className={`h-2 rounded-full transition-all duration-500 ${record.status === 'paid' ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-brand-400 to-brand-600'}`}
-                                                            style={{ width: `${Math.min(100, (record.amountPaid / record.amountDue) * 100)}%` }}
-                                                        ></div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            {semRecords.length === 0 && <p className="text-sm text-gray-400 italic text-center py-2">No fee records found.</p>}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                            {(!profile?.feeRecords || profile.feeRecords.filter(r => r.year === activeFeeYear).length === 0) && (
-                                <div className="text-center py-8 text-gray-400 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                    No records for Year {activeFeeYear}
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
-                            )}
+                            );
+                        }
+
+                        const feeRecords = profile?.feeRecords?.filter(r => r.year === activeFeeYear && r.feeType === feeTab) || [];
+                        const totalDue = feeRecords.reduce((sum, r) => sum + r.amountDue, 0);
+                        const totalPaid = feeRecords.reduce((sum, r) => sum + (r.amountPaid || 0), 0);
+                        const pending = totalDue - totalPaid;
+
+
+                        return (
+                            <div className="space-y-8">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="bg-brand-50/50 rounded-xl p-6 border border-brand-100 relative overflow-hidden group">
+                                        <div className="absolute right-0 top-0 -mt-4 -mr-4 w-24 h-24 bg-brand-200/20 rounded-full blur-2xl transition-all group-hover:bg-brand-200/40"></div>
+                                        <p className="text-xs font-bold text-brand-500 uppercase tracking-widest mb-1 relative z-10">Total Fee</p>
+                                        <h4 className="text-3xl font-serif font-bold text-gray-900 relative z-10">₹{totalDue.toLocaleString()}</h4>
+                                    </div>
+                                    <div className="bg-emerald-50/50 rounded-xl p-6 border border-emerald-100 relative overflow-hidden group">
+                                        <div className="absolute right-0 top-0 -mt-4 -mr-4 w-24 h-24 bg-emerald-200/20 rounded-full blur-2xl transition-all group-hover:bg-emerald-200/40"></div>
+                                        <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1 relative z-10">Paid Amount</p>
+                                        <h4 className="text-3xl font-serif font-bold text-gray-900 relative z-10">₹{totalPaid.toLocaleString()}</h4>
+                                    </div>
+                                    <div className="bg-rose-50/50 rounded-xl p-6 border border-rose-100 relative overflow-hidden group">
+                                        <div className="absolute right-0 top-0 -mt-4 -mr-4 w-24 h-24 bg-rose-200/20 rounded-full blur-2xl transition-all group-hover:bg-rose-200/40"></div>
+                                        <p className="text-xs font-bold text-rose-600 uppercase tracking-widest mb-1 relative z-10">Pending Due</p>
+                                        <h4 className="text-3xl font-serif font-bold text-gray-900 relative z-10">₹{pending.toLocaleString()}</h4>
+                                    </div>
+                                </div>
+
+
+                            </div>
+                        );
+                    })()}
+
+                    {/* Integrated Fee Structure List */}
+                    {feeTab !== 'library' && (
+                        <div className="mt-8 border-t border-gray-100 pt-6">
+                            <h4 className="text-lg font-serif font-bold text-gray-800 mb-4 flex items-center">
+                                <CreditCard className="mr-2 h-5 w-5 text-gray-400" />
+                                Detailed Breakdown
+                            </h4>
+
+                            {/* Year Tabs */}
+                            <div className="flex space-x-1 mb-6 bg-gray-50 p-1 rounded-lg max-w-md">
+                                {[1, 2, 3, 4].map(year => (
+                                    <button
+                                        key={year}
+                                        onClick={() => setActiveFeeYear(year)}
+                                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all duration-200 uppercase tracking-wide ${activeFeeYear === year
+                                            ? 'bg-white text-brand-700 shadow-sm ring-1 ring-black/5'
+                                            : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                                            }`}
+                                    >
+                                        Year {year}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {feeTab !== 'library' && [...new Set(profile?.feeRecords?.filter(r => r.year === activeFeeYear && r.feeType === feeTab).map(r => r.semester))].sort().map(sem => {
+                                    const semRecords = profile?.feeRecords?.filter(r => r.year === activeFeeYear && r.semester === sem && r.feeType === feeTab);
+                                    // ... rest of the code
+                                    return (
+                                        <div key={sem} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white">
+                                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                                                <span className="font-bold text-gray-800 text-sm">Semester {sem}</span>
+                                            </div>
+                                            <div className="p-4 space-y-4">
+                                                {semRecords.map((record, idx) => (
+                                                    <div key={idx} className="flex flex-col space-y-2">
+                                                        <div className="flex justify-between items-center">
+                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${record.status === 'paid' ? 'bg-green-100 text-green-700' : record.status === 'partial' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                                                {record.status === 'paid' ? 'Paid' : record.status === 'partial' ? 'Partial' : 'Pending'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between text-xs text-gray-500 font-medium">
+                                                            <span>Due: ₹{record.amountDue.toLocaleString()}</span>
+                                                            <span>Paid: ₹{record.amountPaid?.toLocaleString() || 0}</span>
+                                                        </div>
+
+                                                    </div>
+                                                ))}
+                                                {semRecords.length === 0 && <p className="text-sm text-gray-400 italic text-center py-2">No fee records found.</p>}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {feeTab !== 'library' && (!profile?.feeRecords || profile.feeRecords.filter(r => r.year === activeFeeYear && r.feeType === feeTab).length === 0) && (
+                                    <div className="col-span-full text-center py-8 text-gray-400 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                        No {feeTab} fee records for Year {activeFeeYear}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    )}
+                </div>
+
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-1 space-y-6">
 
                     {/* Eligibility Status */}
                     <div className={`rounded-xl shadow-lg hover:shadow-xl transition-all p-6 text-white relative overflow-hidden group ${isEligible ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-rose-500 to-pink-600'}`}>

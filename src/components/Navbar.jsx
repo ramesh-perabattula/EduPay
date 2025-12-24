@@ -33,6 +33,21 @@ const Navbar = () => {
                         {user ? (
                             <>
                                 <div className="flex items-center space-x-3 pl-6">
+                                    {user.role === 'librarian' && (
+                                        <Link to="/librarian/dashboard" className="text-sm font-bold text-gray-500 hover:text-brand-600 mr-2">
+                                            Dashboard
+                                        </Link>
+                                    )}
+                                    {user.role === 'placement_officer' && (
+                                        <Link to="/placement/dashboard" className="text-sm font-bold text-gray-500 hover:text-brand-600 mr-2">
+                                            Dashboard
+                                        </Link>
+                                    )}
+                                    {user.role === 'hostel_warden' && (
+                                        <Link to="/hostel/dashboard" className="text-sm font-bold text-gray-500 hover:text-brand-600 mr-2">
+                                            Dashboard
+                                        </Link>
+                                    )}
                                     <div className="flex flex-col items-end hidden md:flex">
                                         <span className="text-sm font-bold text-brand-900">{user.name}</span>
                                         <span className="text-xs font-medium text-brand-500 bg-brand-50 px-2 py-0.5 rounded-full uppercase tracking-wider">

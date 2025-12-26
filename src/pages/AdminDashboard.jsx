@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
-import { Search, Settings, DollarSign, Users } from 'lucide-react';
+import { Search, Settings, DollarSign, Users, PieChart as PieIcon } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('search');
@@ -17,6 +18,27 @@ const AdminDashboard = () => {
     // Promotion Logic
     const [promotionYear, setPromotionYear] = useState(1);
     const [classStudents, setClassStudents] = useState([]);
+
+    // Analytics Logic
+    const [analyticsData, setAnalyticsData] = useState(null);
+    const [analyticsFilter, setAnalyticsFilter] = useState({ year: 'all', department: 'all' });
+
+    const fetchAnalytics = async () => {
+        try {
+            const { year, department } = analyticsFilter;
+            const { data } = await api.get(`/admin/analytics?year=${year}&department=${department}`);
+            console.log("Analytics Data Debug:", data);
+            setAnalyticsData(data);
+        } catch (error) {
+            toast.error('Failed to load analytics');
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'analytics') {
+            fetchAnalytics();
+        }
+    }, [activeTab, analyticsFilter]);
 
     const handleSearchStudent = async (e) => {
         e.preventDefault();
@@ -113,7 +135,8 @@ const AdminDashboard = () => {
                 {[
                     { id: 'search', label: 'Search & Edit', icon: Search },
                     { id: 'fees', label: 'Fee Config', icon: Settings },
-                    { id: 'promotion', label: 'Class Management', icon: Users }, // Reusing Users icon for now
+                    { id: 'promotion', label: 'Class Management', icon: Users },
+                    { id: 'analytics', label: 'Analytics', icon: PieIcon },
                 ].map((tab) => (
                     <button
                         key={tab.id}
@@ -557,6 +580,172 @@ const AdminDashboard = () => {
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* 5. ANALYTICS */}
+            {activeTab === 'analytics' && (
+                <div className="bg-white p-8 rounded-xl shadow-md">
+                    <h2 className="text-xl font-bold mb-6 flex items-center">
+                        <PieIcon className="mr-2 h-6 w-6 text-indigo-600" />
+                        Fee Collection Analytics
+                    </h2>
+
+                    {/* Filters */}
+                    <div className="flex flex-col sm:flex-row gap-4 mb-8 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">Academic Year</label>
+                            <select
+                                className="w-full sm:w-48 p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                value={analyticsFilter.year}
+                                onChange={(e) => setAnalyticsFilter({ ...analyticsFilter, year: e.target.value })}
+                            >
+                                <option value="all">All Years</option>
+                                <option value="1">Year 1</option>
+                                <option value="2">Year 2</option>
+                                <option value="3">Year 3</option>
+                                <option value="4">Year 4</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">Department</label>
+                            <select
+                                className="w-full sm:w-48 p-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                value={analyticsFilter.department}
+                                onChange={(e) => setAnalyticsFilter({ ...analyticsFilter, department: e.target.value })}
+                            >
+                                <option value="all">All Departments</option>
+                                <option value="CSE">CSE</option>
+                                <option value="CSE-CAD">CSE-CAD</option>
+                                <option value="CSE-AIML">CSE-AIML</option>
+                                <option value="CSE-CSM">CSE-CSM</option>
+                                <option value="ECE">ECE</option>
+                                <option value="EEE">EEE</option>
+                                <option value="ME">ME</option>
+                                <option value="CV">CV</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {analyticsData ? (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            {/* Chart Section - Takes 2/3 width */}
+                            <div className="flex flex-col items-center justify-center bg-gray-50 rounded-xl p-6 border border-gray-100 lg:col-span-2">
+                                <h3 className="text-lg font-bold text-gray-800 mb-2">
+                                    Fee Status Analysis
+                                </h3>
+                                <div className="h-[500px] w-full mt-4 bg-white rounded-lg p-2">
+                                    {(() => {
+                                        // Pre-process data
+                                        let chartData = analyticsData.breakdown || [];
+                                        const ALL_DEPARTMENTS = ['CSE', 'CSE-CAD', 'CSE-AIML', 'CSE-CSM', 'ECE', 'EEE', 'ME', 'CV'];
+
+                                        if (analyticsFilter.department === 'all' && analyticsFilter.year === 'all') {
+                                            chartData = ALL_DEPARTMENTS.map(dept => {
+                                                const existing = chartData.find(d => d.label === dept);
+                                                return existing || { label: dept, fullyPaid: 0, pending: 0 };
+                                            });
+                                        }
+
+                                        if (chartData.length > 0) {
+                                            return (
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart
+                                                        data={chartData}
+                                                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                                                    >
+                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                                        <XAxis
+                                                            dataKey="label"
+                                                            interval={0}
+                                                            angle={-45}
+                                                            textAnchor="end"
+                                                            height={80}
+                                                            tick={{ fill: '#374151', fontSize: 13, fontWeight: 700 }}
+                                                        />
+                                                        <YAxis tick={false} width={10} axisLine={false} />
+                                                        <Tooltip
+                                                            cursor={{ fill: '#f3f4f6' }}
+                                                            contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                                        />
+                                                        <Legend verticalAlign="top" height={36} iconType="circle" />
+                                                        <Bar dataKey="fullyPaid" name="Fully Paid" fill="#10B981" radius={[4, 4, 0, 0]} barSize={50} />
+                                                        <Bar dataKey="pending" name="Dues Pending" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={50} />
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            );
+                                        } else {
+                                            return (
+                                                <div className="flex flex-col items-center justify-center h-full w-full bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                                                    <PieIcon className="w-16 h-16 text-gray-300 mb-3" />
+                                                    <p className="text-gray-500 font-bold text-xl">No Data Available</p>
+                                                    <p className="text-gray-400 text-sm mt-1 max-w-xs text-center">
+                                                        There are no records for the selected combination of Year and Department.
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+                                    })()}
+                                </div>
+                                <p className="text-sm text-gray-500 mt-4 text-center">
+                                    Total Students: <span className="font-bold text-gray-800">{analyticsData.totalStudents}</span>
+                                </p>
+                            </div>
+
+                            {/* Stats Section - Stacked Vertical Column */}
+                            <div className="flex flex-col gap-8 lg:col-span-1">
+                                {/* Breakdown By Fee Type (Moved Top) */}
+                                <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm h-full">
+                                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 border-b pb-2">
+                                        Breakdown by Fee Type
+                                    </h3>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-gray-500">College Fee</span>
+                                            <span className="font-bold text-gray-800">
+                                                ₹{analyticsData.totalCollegeDue?.toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-gray-500">Transport Fee</span>
+                                            <span className="font-bold text-gray-800">
+                                                ₹{analyticsData.totalTransportDue?.toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-gray-500">Hostel Fee</span>
+                                            <span className="font-bold text-gray-800">
+                                                ₹{analyticsData.totalHostelDue?.toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-gray-500">Placement Fee</span>
+                                            <span className="font-bold text-gray-800">
+                                                ₹{analyticsData.totalPlacementDue?.toLocaleString()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Total Fees Due (Moved Bottom) */}
+                                <div className="bg-indigo-50 rounded-xl p-6 border border-indigo-100 flex flex-col justify-center h-full">
+                                    <h3 className="text-sm font-bold text-indigo-800 uppercase tracking-wider mb-2">
+                                        Total Fees Due
+                                    </h3>
+                                    <div className="text-3xl font-extrabold text-indigo-900 mb-1">
+                                        ₹{analyticsData.totalOverallDue?.toLocaleString()}
+                                    </div>
+                                    <div className="text-xs text-indigo-500 font-medium">
+                                        Outstanding Amount
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="h-64 flex items-center justify-center text-gray-400">
+                            Loading Analytics...
                         </div>
                     )}
                 </div>

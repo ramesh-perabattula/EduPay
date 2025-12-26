@@ -130,64 +130,66 @@ const StudentDashboard = () => {
 
 
             {/* Profile Summary */}
-            <div className="bg-white rounded-xl shadow-lg border-l-4 border-brand-500 p-6 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8 items-center hover:shadow-xl transition-shadow duration-300">
-                <div className="flex items-center space-x-5 w-full md:w-auto justify-center md:justify-start">
-                    <div className="relative group">
-                        <div className="h-20 w-20 rounded-full ring-4 ring-brand-100 overflow-hidden bg-brand-50 flex items-center justify-center">
-                            {profile?.user?.photoUrl ? (
-                                <img
-                                    src={`http://localhost:5000${profile.user.photoUrl}`}
-                                    alt="Profile"
-                                    className="h-full w-full object-cover"
+            <div className="bg-white rounded-xl shadow-lg border-l-4 border-brand-500 p-6 md:p-8 flex flex-col gap-6 hover:shadow-xl transition-shadow duration-300">
+                <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center w-full">
+                    <div className="flex items-center space-x-5 w-full md:w-auto justify-center md:justify-start">
+                        <div className="relative group">
+                            <div className="h-20 w-20 rounded-full ring-4 ring-brand-100 overflow-hidden bg-brand-50 flex items-center justify-center">
+                                {profile?.user?.photoUrl ? (
+                                    <img
+                                        src={`http://localhost:5000${profile.user.photoUrl}`}
+                                        alt="Profile"
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    <CheckCircle className="h-8 w-8 text-brand-600" />
+                                )}
+                            </div>
+                            {/* Upload Button Overlay */}
+                            <label className="absolute bottom-0 right-0 bg-brand-600 text-white p-1.5 rounded-full shadow-md cursor-pointer hover:bg-brand-700 transition-colors hidden group-hover:flex items-center justify-center" title="Change Photo">
+                                {uploading ? (
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                    <Camera className="w-4 h-4" />
+                                )}
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={handleFileUpload}
+                                    disabled={uploading}
                                 />
-                            ) : (
-                                <CheckCircle className="h-8 w-8 text-brand-600" />
-                            )}
+                            </label>
                         </div>
-                        {/* Upload Button Overlay */}
-                        <label className="absolute bottom-0 right-0 bg-brand-600 text-white p-1.5 rounded-full shadow-md cursor-pointer hover:bg-brand-700 transition-colors hidden group-hover:flex items-center justify-center" title="Change Photo">
-                            {uploading ? (
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                                <Camera className="w-4 h-4" />
-                            )}
-                            <input
-                                type="file"
-                                className="hidden"
-                                accept="image/*"
-                                onChange={handleFileUpload}
-                                disabled={uploading}
-                            />
-                        </label>
-                    </div>
 
-                    <div>
-                        <p className="text-xs font-bold text-brand-500 uppercase tracking-widest mb-1">Student Profile</p>
-                        <h2 className="text-2xl font-serif font-bold text-brand-900 leading-none">{profile?.user?.name}</h2>
-                        <p className="text-sm text-gray-500 font-mono mt-1">{profile?.usn}</p>
+                        <div>
+                            <p className="text-xs font-bold text-brand-500 uppercase tracking-widest mb-1">Student Profile</p>
+                            <h2 className="text-2xl font-serif font-bold text-brand-900 leading-none">{profile?.user?.name}</h2>
+                            <p className="text-sm text-gray-500 font-mono mt-1">{profile?.usn}</p>
+                        </div>
                     </div>
-                </div>
-                <div className="h-12 w-px bg-gray-200 hidden md:block mx-2"></div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-12 gap-y-4">
-                    <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Dept</p>
-                        <p className="font-bold text-gray-800 text-lg">{profile?.department}</p>
-                    </div>
-                    <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Year</p>
-                        <p className="font-bold text-gray-800 text-lg">{profile?.currentYear}</p>
-                    </div>
-                    <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Quota</p>
-                        <p className="font-bold text-gray-800 text-lg capitalize">{profile?.quota}</p>
-                    </div>
-                    <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Entry</p>
-                        <p className="font-bold text-gray-800 text-lg capitalize">{profile?.entry}</p>
+                    <div className="h-12 w-px bg-gray-200 hidden md:block mx-2"></div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-4 flex-1 w-full">
+                        <div>
+                            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Dept</p>
+                            <p className="font-bold text-gray-800 text-lg">{profile?.department}</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Year</p>
+                            <p className="font-bold text-gray-800 text-lg">{profile?.currentYear}</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Quota</p>
+                            <p className="font-bold text-gray-800 text-lg capitalize">{profile?.quota}</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Entry</p>
+                            <p className="font-bold text-gray-800 text-lg capitalize">{profile?.entry}</p>
+                        </div>
                     </div>
                 </div>
                 {profile?.transportOpted && profile?.transportRoute && (
-                    <div className="mt-4 pt-4 border-t border-gray-100 w-full">
+                    <div className="pt-4 border-t border-gray-100 w-full">
                         <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Transport Route</p>
                         <p className="font-bold text-gray-800 text-lg flex items-center">
                             <Bus className="w-4 h-4 mr-2 text-indigo-500" />

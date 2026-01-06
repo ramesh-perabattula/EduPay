@@ -82,414 +82,34 @@ const SectionHeader = ({ title, description }) => (
 
 // --- Main Dashboard ---
 
-const AdminDashboard = () => {
-    // Layout State
-    const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState('analytics');
+const SearchStudentView = ({
+    searchTerm,
+    setSearchTerm,
+    handleSearch,
+    searchedStudent,
+    concessionMode,
+    setConcessionMode,
+    concessionVal,
+    setConcessionVal,
+    handleUpdateFees
+}) => {
+    const [localSearch, setLocalSearch] = useState(searchTerm);
 
-    // Data State
-    const [analyticsData, setAnalyticsData] = useState(null);
-    const [analyticsFilter, setAnalyticsFilter] = useState({ year: 'all', department: 'all', type: 'all' });
-    const [searchedStudent, setSearchedStudent] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [configData, setConfigData] = useState({ quota: 'government', currentYear: '', usn: '', amount: '' });
-    const [classStudents, setClassStudents] = useState([]);
-    const [promotionYear, setPromotionYear] = useState(1);
-    const [loading, setLoading] = useState(false);
-
-    // Directory State
-    const [directoryStudents, setDirectoryStudents] = useState([]);
-    const [directoryFilter, setDirectoryFilter] = useState({ department: 'all', year: 'all' });
-
-    // Concession State
-    const [concessionMode, setConcessionMode] = useState(null); // 'collegeFeeDue', etc.
-    const [concessionVal, setConcessionVal] = useState('');
-
-    // --- Effects & Handlers ---
-
+    // Sync if parent updates (optional, but good for resetting)
     useEffect(() => {
-        if (activeTab === 'analytics') fetchAnalytics();
-        if (activeTab === 'users') fetchDirectory();
-    }, [activeTab, analyticsFilter, directoryFilter]);
+        setLocalSearch(searchTerm);
+    }, [searchTerm]);
 
-    const fetchAnalytics = async () => {
-        try {
-            setLoading(true);
-            const { year, department, type } = analyticsFilter;
-            const { data } = await api.get(`/admin/analytics?year=${year}&department=${department}&type=${type}`);
-            setAnalyticsData(data);
-        } catch (error) {
-            toast.error('Could not load analytics');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchDirectory = async () => {
-        try {
-            setLoading(true);
-            const { department, year } = directoryFilter;
-            const { data } = await api.get(`/admin/students?department=${department}&year=${year}`);
-            setDirectoryStudents(data);
-        } catch (error) {
-            toast.error('Could not load student directory');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSearch = async (e) => {
-        e?.preventDefault();
-        if (!searchTerm.trim()) return;
-        try {
-            setLoading(true);
-            const { data } = await api.get(`/admin/students/search?query=${searchTerm}`);
-            setSearchedStudent(data);
-        } catch (error) {
-            toast.error('Student not found');
-            setSearchedStudent(null);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleUpdateFees = async (usn, updates) => {
-        try {
-            const { data } = await api.put(`/admin/students/${usn}/fees`, updates);
-            toast.success('Fee record updated');
-            setSearchedStudent(data);
-        } catch (error) {
-            toast.error('Update failed');
-        }
-    };
-
-    const handleFetchClass = async () => {
-        try {
-            setLoading(true);
-            const { data } = await api.get(`/admin/students/year/${promotionYear}`);
-            setClassStudents(data);
-            if (data.length === 0) toast('No students found for this year', { icon: 'ℹ️' });
-        } catch (error) {
-            toast.error('Failed to fetch class');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handlePromote = async () => {
-        const eligible = classStudents.filter(s => (s.collegeFeeDue || 0) <= 0);
-        if (eligible.length === 0) return toast.error('No eligible students found');
-
-        if (!confirm(`Promote ${eligible.length} students?`)) return;
-
-        try {
-            const { data } = await api.post('/admin/students/promote', { currentYear: promotionYear });
-            toast.success(data.message);
-            handleFetchClass();
-        } catch (error) {
-            toast.error('Promotion failed');
-        }
-    };
-
-    const handleConfigSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            if (configData.quota === 'government') {
-                if (!configData.currentYear) return toast.error('Select Year');
-                await api.post('/admin/config/gov-fee', { year: configData.currentYear, amount: configData.amount });
-                toast.success('Bulk update successful');
-            } else {
-                if (!configData.usn) return toast.error('Enter USN');
-                await api.put(`/admin/students/${configData.usn}/fees`, { collegeFeeDue: configData.amount, annualCollegeFee: configData.amount });
-                toast.success('Individual fee assigned');
-            }
-            setConfigData(prev => ({ ...prev, amount: '' }));
-        } catch (error) {
-            toast.error('Configuration failed');
-        }
-    };
-
-    const formatValue = (val) => {
-        if (analyticsFilter.type === 'all') return val;
-        return `₹${(val / 100000).toFixed(1)}L`;
-    };
-
-    // --- Sub-Views ---
-
-    const StudentsDirectoryView = () => (
-        <div className="space-y-6 animate-fade-in">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <h3 className="text-sm font-semibold text-gray-700">Filter Directory</h3>
-                <div className="flex gap-3 w-full sm:w-auto">
-                    <select
-                        className="flex-1 sm:w-40 p-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                        value={directoryFilter.department}
-                        onChange={(e) => setDirectoryFilter({ ...directoryFilter, department: e.target.value })}
-                    >
-                        <option value="all">All Departments</option>
-                        <option value="CSE">CSE</option>
-                        <option value="ISE">ISE</option>
-                        <option value="ECE">ECE</option>
-                        <option value="MECH">MECH</option>
-                        <option value="CIVIL">CIVIL</option>
-                    </select>
-
-                    <select
-                        className="flex-1 sm:w-32 p-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                        value={directoryFilter.year}
-                        onChange={(e) => setDirectoryFilter({ ...directoryFilter, year: e.target.value })}
-                    >
-                        <option value="all">All Years</option>
-                        {[1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)}
-                    </select>
-                </div>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
-                            <tr>
-                                <th className="px-6 py-4">USN</th>
-                                <th className="px-6 py-4">Student Name</th>
-                                <th className="px-6 py-4">Department</th>
-                                <th className="px-6 py-4">Year</th>
-                                <th className="px-6 py-4">Quota</th>
-                                <th className="px-6 py-4">Contact Email</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {directoryStudents.length > 0 ? directoryStudents.map(student => (
-                                <tr key={student._id} className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="px-6 py-4 font-mono font-medium text-indigo-600">{student.usn}</td>
-                                    <td className="px-6 py-4 font-medium text-gray-900">{student.user?.name || 'N/A'}</td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-600">
-                                            {student.department}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-gray-600">Year {student.currentYear}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${student.quota === 'government' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-                                            }`}>
-                                            {student.quota}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-gray-500 truncate max-w-xs">{student.user?.email || 'N/A'}</td>
-                                </tr>
-                            )) : (
-                                <tr>
-                                    <td colSpan="6" className="px-6 py-8 text-center text-gray-400">
-                                        No students found matching filters.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-                <div className="p-4 border-t border-gray-100 bg-gray-50/50 text-xs text-center text-gray-500">
-                    Showing {directoryStudents.length} Record{directoryStudents.length !== 1 && 's'}
-                </div>
-            </div>
-        </div>
-    );
-
-    const AnalyticsView = () => (
-        <div className="space-y-6 animate-fade-in">
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <h3 className="text-sm font-semibold text-gray-700">Financial Insights</h3>
-                <div className="flex gap-3 w-full sm:w-auto flex-wrap">
-                    <select
-                        className="p-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                        value={analyticsFilter.type}
-                        onChange={(e) => setAnalyticsFilter({ ...analyticsFilter, type: e.target.value })}
-                    >
-                        <option value="all">Overall Status (Student Count)</option>
-                        <option value="college">Academic Fee (₹)</option>
-                        <option value="transport">Transport Fee (₹)</option>
-                        <option value="hostel">Hostel Fee (₹)</option>
-                        <option value="placement">Training Fee (₹)</option>
-                        <option value="exam">Exam Fee (₹)</option>
-                    </select>
-
-                    <select
-                        className="p-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                        value={analyticsFilter.department}
-                        onChange={(e) => setAnalyticsFilter({ ...analyticsFilter, department: e.target.value })}
-                    >
-                        <option value="all">All Departments</option>
-                        <option value="CSE">CSE</option>
-                        <option value="ISE">ISE</option>
-                        <option value="ECE">ECE</option>
-                        <option value="MECH">MECH</option>
-                        <option value="CIVIL">CIVIL</option>
-                    </select>
-
-                    <select
-                        className="p-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                        value={analyticsFilter.year}
-                        onChange={(e) => setAnalyticsFilter({ ...analyticsFilter, year: e.target.value })}
-                    >
-                        <option value="all">All Years</option>
-                        {[1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)}
-                    </select>
-                </div>
-            </div>
-
-            {/* Stats Grid */}
-            {(() => {
-                const type = analyticsFilter.type;
-
-                const getFeeConfig = (t) => {
-                    const configs = {
-                        college: { label: 'Academic', key: 'College' },
-                        transport: { label: 'Transport', key: 'Transport' },
-                        hostel: { label: 'Hostel', key: 'Hostel' },
-                        placement: { label: 'Training', key: 'Placement' }
-                    };
-                    return configs[t];
-                };
-
-                if (type === 'exam') {
-                    return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <StatCard
-                                title="Active Exam Collection"
-                                value={`₹${(analyticsData?.totalExamCollected / 100000).toFixed(1)}L`}
-                                subtext="Total Paid"
-                                icon={CheckCircle}
-                                colorClass="bg-emerald-50 text-emerald-600"
-                            />
-                            <StatCard
-                                title="Estimated Pending"
-                                value={`₹${(analyticsData?.totalExamPending / 100000).toFixed(1)}L`}
-                                subtext="Based on Active Notifications"
-                                icon={AlertCircle}
-                                colorClass="bg-red-50 text-red-600"
-                            />
-                        </div>
-                    );
-                }
-
-                if (type !== 'all' && getFeeConfig(type)) {
-                    const config = getFeeConfig(type);
-                    const annual = analyticsData?.[`total${config.key}Annual`] || 0;
-                    const due = analyticsData?.[`total${config.key}Due`] || 0;
-                    const collected = Math.max(0, annual - due);
-
-                    return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <StatCard
-                                title={`${config.label} Collected`}
-                                value={`₹${(collected / 100000).toFixed(1)}L`}
-                                subtext={`Total ${config.label} Received`}
-                                icon={CheckCircle}
-                                colorClass="bg-emerald-50 text-emerald-600"
-                            />
-                            <StatCard
-                                title={`${config.label} Due`}
-                                value={`₹${(due / 100000).toFixed(1)}L`}
-                                subtext={`Pending ${config.label} Payments`}
-                                icon={AlertCircle}
-                                colorClass="bg-red-50 text-red-600"
-                            />
-                        </div>
-                    );
-                }
-
-                return (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        <StatCard
-                            title="Academic Due"
-                            value={`₹${(analyticsData?.totalCollegeDue / 100000).toFixed(1)}L`}
-                            subtext="Pending Collection"
-                            icon={GraduationCap}
-                            colorClass="bg-indigo-50 text-indigo-600"
-                        />
-                        <StatCard
-                            title="Transport Due"
-                            value={`₹${(analyticsData?.totalTransportDue / 100000).toFixed(1)}L`}
-                            subtext="Logistics Pending"
-                            icon={CreditCard}
-                            colorClass="bg-orange-50 text-orange-600"
-                        />
-                        <StatCard
-                            title="Hostel Due"
-                            value={`₹${(analyticsData?.totalHostelDue / 100000).toFixed(1)}L`}
-                            subtext="Accommodation"
-                            icon={LayoutDashboard}
-                            colorClass="bg-rose-50 text-rose-600"
-                        />
-                        <StatCard
-                            title="Training Due"
-                            value={`₹${(analyticsData?.totalPlacementDue / 100000).toFixed(1)}L`}
-                            subtext="Placement Cell"
-                            icon={CheckCircle}
-                            colorClass="bg-green-50 text-green-600"
-                        />
-                    </div>
-                );
-            })()}
-
-            {/* Chart */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-sm font-bold text-gray-800">
-                        {analyticsFilter.type === 'all' ? 'Student Payment Status Distribution' : `${analyticsFilter.type.charAt(0).toUpperCase() + analyticsFilter.type.slice(1)} Fee Collection Analysis`}
-                    </h3>
-                    <div className="flex gap-4 text-xs font-medium">
-                        <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-500 rounded-sm"></div> {analyticsFilter.type === 'all' ? 'Fully Paid' : 'Collected'}</div>
-                        <div className="flex items-center gap-1"><div className="w-3 h-3 bg-rose-500 rounded-sm"></div> {analyticsFilter.type === 'all' ? 'Has Dues' : 'Pending'}</div>
-                    </div>
-                </div>
-                <div className="h-96 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={analyticsData?.breakdown || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={10} />
-                            <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#9ca3af', fontSize: 11 }}
-                                tickFormatter={formatValue}
-                            />
-                            <Tooltip
-                                cursor={{ fill: '#f9fafb' }}
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                formatter={(value) => analyticsFilter.type === 'all' ? value : `₹${value.toLocaleString()}`}
-                            />
-                            <Bar
-                                dataKey="fullyPaid"
-                                name={analyticsFilter.type === 'all' ? "Students Paid" : "Collected"}
-                                fill="#10b981"
-                                radius={[4, 4, 0, 0]}
-                                maxBarSize={40}
-                            />
-                            <Bar
-                                dataKey="pending"
-                                name={analyticsFilter.type === 'all' ? "Students Pending" : "Pending"}
-                                fill="#ef4444"
-                                radius={[4, 4, 0, 0]}
-                                maxBarSize={40}
-                            />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
-        </div>
-    );
-
-    const SearchStudentView = () => (
+    return (
         <div className="space-y-8 animate-fade-in max-w-5xl mx-auto">
             <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-center">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Search Student Database</h3>
                 <div className="flex justify-center">
                     <SearchInput
-                        placeholder="Enter USN (e.g., 22221A0410)"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        onSearch={handleSearch}
+                        placeholder="Enter USN or Name"
+                        value={localSearch}
+                        onChange={(e) => setLocalSearch(e.target.value)}
+                        onSearch={() => handleSearch(localSearch)}
                     />
                 </div>
             </div>
@@ -669,6 +289,413 @@ const AdminDashboard = () => {
             )}
         </div>
     );
+};
+
+const AdminDashboard = () => {
+    // Layout State
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState('analytics');
+
+    // Data State
+    const [analyticsData, setAnalyticsData] = useState(null);
+    const [analyticsFilter, setAnalyticsFilter] = useState({ year: 'all', department: 'all', type: 'all' });
+    const [searchedStudent, setSearchedStudent] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [configData, setConfigData] = useState({ quota: 'government', currentYear: '', usn: '', amount: '' });
+    const [classStudents, setClassStudents] = useState([]);
+    const [promotionYear, setPromotionYear] = useState(1);
+    const [loading, setLoading] = useState(false);
+
+    // Directory State
+    const [directoryStudents, setDirectoryStudents] = useState([]);
+    const [directoryFilter, setDirectoryFilter] = useState({ department: 'all', year: 'all' });
+
+    // Concession State
+    const [concessionMode, setConcessionMode] = useState(null); // 'collegeFeeDue', etc.
+    const [concessionVal, setConcessionVal] = useState('');
+
+    // --- Effects & Handlers ---
+
+    useEffect(() => {
+        if (activeTab === 'analytics') fetchAnalytics();
+        if (activeTab === 'users') fetchDirectory();
+    }, [activeTab, analyticsFilter, directoryFilter]);
+
+    const fetchAnalytics = async () => {
+        try {
+            setLoading(true);
+            const { year, department, type } = analyticsFilter;
+            const { data } = await api.get(`/admin/analytics?year=${year}&department=${department}&type=${type}`);
+            setAnalyticsData(data);
+        } catch (error) {
+            toast.error('Could not load analytics');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchDirectory = async () => {
+        try {
+            setLoading(true);
+            const { department, year } = directoryFilter;
+            const { data } = await api.get(`/admin/students?department=${department}&year=${year}`);
+            setDirectoryStudents(data);
+        } catch (error) {
+            toast.error('Could not load student directory');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSearch = async (e) => {
+        e?.preventDefault();
+        if (!searchTerm.trim()) return;
+        try {
+            setLoading(true);
+            const { data } = await api.get(`/admin/students/search?query=${searchTerm}`);
+            setSearchedStudent(data);
+        } catch (error) {
+            toast.error('Student not found');
+            setSearchedStudent(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdateFees = async (usn, updates) => {
+        try {
+            const { data } = await api.put(`/admin/students/${usn}/fees`, updates);
+            toast.success('Fee record updated');
+            setSearchedStudent(data);
+        } catch (error) {
+            toast.error('Update failed');
+        }
+    };
+
+    const handleFetchClass = async () => {
+        try {
+            setLoading(true);
+            const { data } = await api.get(`/admin/students/year/${promotionYear}`);
+            setClassStudents(data);
+            if (data.length === 0) toast('No students found for this year', { icon: 'ℹ️' });
+        } catch (error) {
+            toast.error('Failed to fetch class');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePromote = async () => {
+        const eligible = classStudents.filter(s => (s.collegeFeeDue || 0) <= 0);
+        if (eligible.length === 0) return toast.error('No eligible students found');
+
+        if (!confirm(`Promote ${eligible.length} students?`)) return;
+
+        try {
+            const { data } = await api.post('/admin/students/promote', { currentYear: promotionYear });
+            toast.success(data.message);
+            handleFetchClass();
+        } catch (error) {
+            toast.error('Promotion failed');
+        }
+    };
+
+    const handleConfigSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            if (configData.quota === 'government') {
+                if (!configData.currentYear) return toast.error('Select Year');
+                await api.post('/admin/config/gov-fee', { year: configData.currentYear, amount: configData.amount });
+                toast.success('Bulk update successful');
+            } else {
+                if (!configData.usn) return toast.error('Enter USN');
+                await api.put(`/admin/students/${configData.usn}/fees`, { collegeFeeDue: configData.amount, annualCollegeFee: configData.amount });
+                toast.success('Individual fee assigned');
+            }
+            setConfigData(prev => ({ ...prev, amount: '' }));
+        } catch (error) {
+            toast.error('Configuration failed');
+        }
+    };
+
+    const formatValue = (val) => {
+        if (analyticsFilter.type === 'all') return val;
+        return `₹${(val / 100000).toFixed(1)}L`;
+    };
+
+    // --- Sub-Views ---
+
+    const StudentsDirectoryView = () => (
+        <div className="space-y-6 animate-fade-in">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                <h3 className="text-sm font-semibold text-gray-700">Filter Directory</h3>
+                <div className="flex gap-3 w-full sm:w-auto">
+                    <select
+                        className="flex-1 sm:w-40 p-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                        value={directoryFilter.department}
+                        onChange={(e) => setDirectoryFilter({ ...directoryFilter, department: e.target.value })}
+                    >
+                        <option value="all">All Departments</option>
+                        <option value="CSE">CSE</option>
+                        <option value="ECE">ECE</option>
+                        <option value="AIML">AIML</option>
+                        <option value="CSM">CSM</option>
+                        <option value="CAD">CAD</option>
+                        <option value="EEE">EEE</option>
+                        <option value="CIVIL">CIVIL</option>
+                        <option value="MECH">MECH</option>
+                    </select>
+
+                    <select
+                        className="flex-1 sm:w-32 p-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                        value={directoryFilter.year}
+                        onChange={(e) => setDirectoryFilter({ ...directoryFilter, year: e.target.value })}
+                    >
+                        <option value="all">All Years</option>
+                        {[1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)}
+                    </select>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
+                            <tr>
+                                <th className="px-6 py-4">USN</th>
+                                <th className="px-6 py-4">Student Name</th>
+                                <th className="px-6 py-4">Department</th>
+                                <th className="px-6 py-4">Year</th>
+                                <th className="px-6 py-4">Quota</th>
+                                <th className="px-6 py-4">Contact Email</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {directoryStudents.length > 0 ? directoryStudents.map(student => (
+                                <tr key={student._id} className="hover:bg-gray-50/50 transition-colors">
+                                    <td className="px-6 py-4 font-mono font-medium text-indigo-600">{student.usn}</td>
+                                    <td className="px-6 py-4 font-medium text-gray-900">{student.user?.name || 'N/A'}</td>
+                                    <td className="px-6 py-4">
+                                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-600">
+                                            {student.department}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-600">Year {student.currentYear}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${student.quota === 'government' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                                            }`}>
+                                            {student.quota}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-500 truncate max-w-xs">{student.user?.email || 'N/A'}</td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-8 text-center text-gray-400">
+                                        No students found matching filters.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+                <div className="p-4 border-t border-gray-100 bg-gray-50/50 text-xs text-center text-gray-500">
+                    Showing {directoryStudents.length} Record{directoryStudents.length !== 1 && 's'}
+                </div>
+            </div>
+        </div>
+    );
+
+    const AnalyticsView = () => (
+        <div className="space-y-6 animate-fade-in">
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                <h3 className="text-sm font-semibold text-gray-700">Financial Insights</h3>
+                <div className="flex gap-3 w-full sm:w-auto flex-wrap">
+                    <select
+                        className="p-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                        value={analyticsFilter.type}
+                        onChange={(e) => setAnalyticsFilter({ ...analyticsFilter, type: e.target.value })}
+                    >
+                        <option value="all">Overall Status (Student Count)</option>
+                        <option value="college">Academic Fee (₹)</option>
+                        <option value="transport">Transport Fee (₹)</option>
+                        <option value="hostel">Hostel Fee (₹)</option>
+                        <option value="placement">Training Fee (₹)</option>
+                        <option value="exam">Exam Fee (₹)</option>
+                    </select>
+
+                    <select
+                        className="p-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                        value={analyticsFilter.department}
+                        onChange={(e) => setAnalyticsFilter({ ...analyticsFilter, department: e.target.value })}
+                    >
+                        <option value="all">All Departments</option>
+                        <option value="CSE">CSE</option>
+                        <option value="ECE">ECE</option>
+                        <option value="AIML">AIML</option>
+                        <option value="CSM">CSM</option>
+                        <option value="CAD">CAD</option>
+                        <option value="EEE">EEE</option>
+                        <option value="CIVIL">CIVIL</option>
+                        <option value="MECH">MECH</option>
+                    </select>
+
+                    <select
+                        className="p-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                        value={analyticsFilter.year}
+                        onChange={(e) => setAnalyticsFilter({ ...analyticsFilter, year: e.target.value })}
+                    >
+                        <option value="all">All Years</option>
+                        {[1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)}
+                    </select>
+                </div>
+            </div>
+
+            {/* Stats Grid */}
+            {(() => {
+                const type = analyticsFilter.type;
+
+                const getFeeConfig = (t) => {
+                    const configs = {
+                        college: { label: 'Academic', key: 'College' },
+                        transport: { label: 'Transport', key: 'Transport' },
+                        hostel: { label: 'Hostel', key: 'Hostel' },
+                        placement: { label: 'Training', key: 'Placement' }
+                    };
+                    return configs[t];
+                };
+
+                if (type === 'exam') {
+                    return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <StatCard
+                                title="Active Exam Collection"
+                                value={`₹${(analyticsData?.totalExamCollected / 100000).toFixed(1)}L`}
+                                subtext="Total Paid"
+                                icon={CheckCircle}
+                                colorClass="bg-emerald-50 text-emerald-600"
+                            />
+                            <StatCard
+                                title="Estimated Pending"
+                                value={`₹${(analyticsData?.totalExamPending / 100000).toFixed(1)}L`}
+                                subtext="Based on Active Notifications"
+                                icon={AlertCircle}
+                                colorClass="bg-red-50 text-red-600"
+                            />
+                        </div>
+                    );
+                }
+
+                if (type !== 'all' && getFeeConfig(type)) {
+                    const config = getFeeConfig(type);
+                    const annual = analyticsData?.[`total${config.key}Annual`] || 0;
+                    const due = analyticsData?.[`total${config.key}Due`] || 0;
+                    const collected = Math.max(0, annual - due);
+
+                    return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <StatCard
+                                title={`${config.label} Collected`}
+                                value={`₹${(collected / 100000).toFixed(1)}L`}
+                                subtext={`Total ${config.label} Received`}
+                                icon={CheckCircle}
+                                colorClass="bg-emerald-50 text-emerald-600"
+                            />
+                            <StatCard
+                                title={`${config.label} Due`}
+                                value={`₹${(due / 100000).toFixed(1)}L`}
+                                subtext={`Pending ${config.label} Payments`}
+                                icon={AlertCircle}
+                                colorClass="bg-red-50 text-red-600"
+                            />
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <StatCard
+                            title="Academic Due"
+                            value={`₹${(analyticsData?.totalCollegeDue / 100000).toFixed(1)}L`}
+                            subtext="Pending Collection"
+                            icon={GraduationCap}
+                            colorClass="bg-indigo-50 text-indigo-600"
+                        />
+                        <StatCard
+                            title="Transport Due"
+                            value={`₹${(analyticsData?.totalTransportDue / 100000).toFixed(1)}L`}
+                            subtext="Logistics Pending"
+                            icon={CreditCard}
+                            colorClass="bg-orange-50 text-orange-600"
+                        />
+                        <StatCard
+                            title="Hostel Due"
+                            value={`₹${(analyticsData?.totalHostelDue / 100000).toFixed(1)}L`}
+                            subtext="Accommodation"
+                            icon={LayoutDashboard}
+                            colorClass="bg-rose-50 text-rose-600"
+                        />
+                        <StatCard
+                            title="Training Due"
+                            value={`₹${(analyticsData?.totalPlacementDue / 100000).toFixed(1)}L`}
+                            subtext="Placement Cell"
+                            icon={CheckCircle}
+                            colorClass="bg-green-50 text-green-600"
+                        />
+                    </div>
+                );
+            })()}
+
+            {/* Chart */}
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-sm font-bold text-gray-800">
+                        {analyticsFilter.type === 'all' ? 'Student Payment Status Distribution' : `${analyticsFilter.type.charAt(0).toUpperCase() + analyticsFilter.type.slice(1)} Fee Collection Analysis`}
+                    </h3>
+                    <div className="flex gap-4 text-xs font-medium">
+                        <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-500 rounded-sm"></div> {analyticsFilter.type === 'all' ? 'Fully Paid' : 'Collected'}</div>
+                        <div className="flex items-center gap-1"><div className="w-3 h-3 bg-rose-500 rounded-sm"></div> {analyticsFilter.type === 'all' ? 'Has Dues' : 'Pending'}</div>
+                    </div>
+                </div>
+                <div className="h-96 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={analyticsData?.breakdown || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                            <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={10} />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#9ca3af', fontSize: 11 }}
+                                tickFormatter={formatValue}
+                            />
+                            <Tooltip
+                                cursor={{ fill: '#f9fafb' }}
+                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                formatter={(value) => analyticsFilter.type === 'all' ? value : `₹${value.toLocaleString()}`}
+                            />
+                            <Bar
+                                dataKey="fullyPaid"
+                                name={analyticsFilter.type === 'all' ? "Students Paid" : "Collected"}
+                                fill="#10b981"
+                                radius={[4, 4, 0, 0]}
+                                maxBarSize={40}
+                            />
+                            <Bar
+                                dataKey="pending"
+                                name={analyticsFilter.type === 'all' ? "Students Pending" : "Pending"}
+                                fill="#ef4444"
+                                radius={[4, 4, 0, 0]}
+                                maxBarSize={40}
+                            />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+        </div>
+    );
+
+    // SearchStudentView component moved to top level
 
     const FeeConfigView = () => (
         <div className="max-w-3xl mx-auto bg-white p-8 rounded-2xl border border-gray-100 shadow-sm animate-fade-in">
@@ -988,7 +1015,17 @@ const AdminDashboard = () => {
 
                     {activeTab === 'analytics' && <AnalyticsView />}
                     {activeTab === 'users' && <StudentsDirectoryView />}
-                    {activeTab === 'search' && <SearchStudentView />}
+                    {activeTab === 'search' && <SearchStudentView
+                        searchTerm={searchTerm}
+                        setSearchTerm={setSearchTerm}
+                        handleSearch={handleSearch}
+                        searchedStudent={searchedStudent}
+                        concessionMode={concessionMode}
+                        setConcessionMode={setConcessionMode}
+                        concessionVal={concessionVal}
+                        setConcessionVal={setConcessionVal}
+                        handleUpdateFees={handleUpdateFees}
+                    />}
                     {activeTab === 'fees' && <FeeConfigView />}
                     {activeTab === 'promotion' && <AcademicView />}
                     {activeTab === 'logs' && <LogsView />}

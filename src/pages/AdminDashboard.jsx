@@ -87,6 +87,8 @@ const SearchStudentView = ({
     setSearchTerm,
     handleSearch,
     searchedStudent,
+    setSearchedStudent,
+    searchResults,
     concessionMode,
     setConcessionMode,
     concessionVal,
@@ -113,6 +115,38 @@ const SearchStudentView = ({
                     />
                 </div>
             </div>
+
+            {/* Selection List for Multiple Results */}
+            {!searchedStudent && searchResults && searchResults.length > 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-8">
+                    <div className="p-4 bg-gray-50 border-b border-gray-100">
+                        <h3 className="text-sm font-bold text-gray-700">Select a Student ({searchResults.length} matches found)</h3>
+                    </div>
+                    <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+                        {searchResults.map((student) => (
+                            <button
+                                key={student._id}
+                                onClick={() => setSearchedStudent(student)}
+                                className="w-full flex items-center justify-between p-4 hover:bg-indigo-50 transition-colors text-left"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold">
+                                        {student.user?.name?.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-gray-900">{student.user?.name}</p>
+                                        <p className="text-xs text-gray-500">{student.usn}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <span className="px-2 py-1 bg-gray-100 rounded text-xs font-semibold uppercase">{student.department}</span>
+                                    <ChevronRight size={16} className="text-gray-400" />
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {searchedStudent && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden">
@@ -300,6 +334,7 @@ const AdminDashboard = () => {
     const [analyticsData, setAnalyticsData] = useState(null);
     const [analyticsFilter, setAnalyticsFilter] = useState({ year: 'all', department: 'all', type: 'all' });
     const [searchedStudent, setSearchedStudent] = useState(null);
+    const [searchResults, setSearchResults] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [configData, setConfigData] = useState({ quota: 'government', currentYear: '', usn: '', amount: '' });
     const [classStudents, setClassStudents] = useState([]);
@@ -347,13 +382,33 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleSearch = async (e) => {
-        e?.preventDefault();
-        if (!searchTerm.trim()) return;
+    const handleSearch = async (queryInput) => {
+        let query = searchTerm;
+        if (typeof queryInput === 'string') {
+            query = queryInput;
+            setSearchTerm(queryInput);
+        } else {
+            queryInput?.preventDefault?.();
+        }
+
+        if (!query.trim()) return;
+
         try {
             setLoading(true);
-            const { data } = await api.get(`/admin/students/search?query=${searchTerm}`);
-            setSearchedStudent(data);
+            setSearchedStudent(null);
+            setSearchResults([]);
+
+            const { data } = await api.get(`/admin/students/search?query=${query}`);
+
+            if (Array.isArray(data)) {
+                if (data.length === 1) {
+                    setSearchedStudent(data[0]);
+                } else {
+                    setSearchResults(data);
+                }
+            } else {
+                setSearchedStudent(data);
+            }
         } catch (error) {
             toast.error('Student not found');
             setSearchedStudent(null);
@@ -1024,6 +1079,8 @@ const AdminDashboard = () => {
                         setSearchTerm={setSearchTerm}
                         handleSearch={handleSearch}
                         searchedStudent={searchedStudent}
+                        setSearchedStudent={setSearchedStudent}
+                        searchResults={searchResults}
                         concessionMode={concessionMode}
                         setConcessionMode={setConcessionMode}
                         concessionVal={concessionVal}

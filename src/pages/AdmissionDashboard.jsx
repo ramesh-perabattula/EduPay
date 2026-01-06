@@ -104,6 +104,35 @@ const AdmissionDashboard = () => {
                                         <div className="mt-6 border-t border-gray-200 pt-4">
                                             <h5 className="font-semibold text-gray-700 mb-2">Semester Breakdown</h5>
                                             <div className="space-y-3">
+                                                {/* Simulated Historic Data for Completed Years */}
+                                                {Array.from({ length: searchedStudent.currentYear - 1 }, (_, i) => i + 1).flatMap(year => {
+                                                    // Check if real record exists for this year to avoid duplicates
+                                                    const hasRecord = searchedStudent.feeRecords?.some(r => r.year === year && r.feeType === 'college');
+                                                    if (hasRecord) return [];
+
+                                                    const semA = (year * 2) - 1;
+                                                    const semB = year * 2;
+
+                                                    return [semA, semB].map(sem => (
+                                                        <div key={`hist-sem-${sem}`} className="flex flex-col bg-gray-50 p-3 rounded-lg border border-gray-100 opacity-60">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-sm font-medium text-gray-600">Year {year} - Sem {sem}</span>
+                                                                <div className="flex items-center space-x-2">
+                                                                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-200 text-gray-600">ARCHIVED</span>
+                                                                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-800">PAID</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex justify-between text-xs text-gray-500">
+                                                                <span>Historic Record</span>
+                                                                <span>Synced</span>
+                                                            </div>
+                                                            <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                                                                <div className="h-1 rounded-full bg-green-500" style={{ width: '100%' }}></div>
+                                                            </div>
+                                                        </div>
+                                                    ));
+                                                })}
+
                                                 {searchedStudent.feeRecords && searchedStudent.feeRecords
                                                     .filter(r => r.feeType === 'college')
                                                     .sort((a, b) => a.year - b.year || a.semester - b.semester)

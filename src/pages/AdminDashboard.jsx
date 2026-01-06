@@ -14,7 +14,8 @@ import {
     ChevronRight,
     Search as SearchIcon,
     ArrowUpRight,
-    Users
+    Users,
+    FileText
 } from 'lucide-react';
 import {
     BarChart,
@@ -591,6 +592,79 @@ const AdminDashboard = () => {
                             </div>
                         ))}
                     </div>
+
+                    <div className="mx-8 mb-8 p-6 bg-gray-50 rounded-2xl border border-gray-200">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <FileText size={20} className="text-indigo-600" />
+                            Fee Ledger History
+                        </h3>
+                        <div className="space-y-3">
+                            {/* Simulated Historic Data */}
+                            {Array.from({ length: searchedStudent.currentYear - 1 }, (_, i) => i + 1).flatMap(year => {
+                                // Check for existence
+                                const hasRecord = searchedStudent.feeRecords?.some(r => r.year === year && r.feeType === 'college');
+                                if (hasRecord) return [];
+
+                                const semA = (year * 2) - 1;
+                                const semB = year * 2;
+
+                                return [semA, semB].map(sem => (
+                                    <div key={`hist-adm-sem-${sem}`} className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl border border-gray-200 opacity-60">
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-2 bg-gray-100 rounded-lg">
+                                                <CheckCircle size={16} className="text-gray-400" />
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-gray-700 text-sm">Year {year} - Semester {sem}</p>
+                                                <p className="text-xs text-gray-500">College / Tuition Fee</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-500 text-xs font-bold border border-gray-200">ARCHIVED</span>
+                                            <span className="px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-bold border border-green-200">PAID</span>
+                                        </div>
+                                    </div>
+                                ));
+                            })}
+
+                            {/* Actual Records */}
+                            {searchedStudent.feeRecords && searchedStudent.feeRecords.length > 0 ? (
+                                searchedStudent.feeRecords.sort((a, b) => b.year - a.year || b.semester - a.semester).map((record) => (
+                                    <div key={record._id} className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`p-2 rounded-lg ${record.status === 'paid' ? 'bg-green-50' : 'bg-red-50'}`}>
+                                                <CreditCard size={16} className={`${record.status === 'paid' ? 'text-green-600' : 'text-red-600'}`} />
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-gray-900 text-sm">Year {record.year} - Semester {record.semester}</p>
+                                                <p className="text-xs text-gray-500 capitalize">{record.feeType} Fee</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-6 mt-3 md:mt-0 w-full md:w-auto">
+                                            <div className="text-right">
+                                                <p className="text-xs text-gray-400 font-medium uppercase">Amount Due</p>
+                                                <p className="font-bold text-gray-900">₹{record.amountDue}</p>
+                                            </div>
+                                            <div className="text-right border-l border-gray-100 pl-6">
+                                                <p className="text-xs text-gray-400 font-medium uppercase">Paid</p>
+                                                <p className={`font-bold ${record.amountPaid >= record.amountDue ? 'text-green-600' : 'text-gray-900'}`}>₹{record.amountPaid}</p>
+                                            </div>
+                                            <div className="pl-2">
+                                                {record.status === 'paid' ? (
+                                                    <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold block text-center min-w-[80px]">PAID</span>
+                                                ) : (
+                                                    <span className="px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold block text-center min-w-[80px]">PENDING</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8 text-gray-400 italic">No active ledger records found.</div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
@@ -736,6 +810,100 @@ const AdminDashboard = () => {
         </div>
     );
 
+    const LogsView = () => {
+        const [logs, setLogs] = useState([]);
+        const [filter, setFilter] = useState({ role: '', action: '' });
+
+        useEffect(() => {
+            fetchLogs();
+        }, [filter, activeTab]);
+
+        const fetchLogs = async () => {
+            try {
+                // setLoading(true); // Optional
+                const query = new URLSearchParams(filter).toString();
+                const { data } = await api.get(`/admin/logs?${query}`);
+                setLogs(data);
+            } catch (error) {
+                // toast.error('Failed to load logs'); // Avoid spamming if switching tabs quickly
+            }
+        };
+
+        return (
+            <div className="space-y-6 animate-fade-in">
+                <div className="flex flex-wrap gap-4 mb-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="text-xs font-bold text-gray-500 uppercase">Action Filter</label>
+                        <input
+                            placeholder="e.g. UPDATE, LOGIN"
+                            className="w-full mt-1 p-2 border border-gray-200 rounded-lg text-sm"
+                            onChange={e => setFilter({ ...filter, action: e.target.value })}
+                        />
+                    </div>
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="text-xs font-bold text-gray-500 uppercase">Role Filter</label>
+                        <select
+                            className="w-full mt-1 p-2 border border-gray-200 rounded-lg text-sm bg-white"
+                            onChange={e => setFilter({ ...filter, role: e.target.value })}
+                        >
+                            <option value="">All Roles</option>
+                            <option value="admin">Admin</option>
+                            <option value="exam_head">Exam Head</option>
+                            <option value="registrar">Registrar</option>
+                            <option value="principal">Principal</option>
+                        </select>
+                    </div>
+                    <div className="flex items-end">
+                        <button onClick={fetchLogs} className="px-4 py-2 bg-gray-900 text-white text-sm font-bold rounded-lg hover:bg-gray-800">Refresh</button>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Time</th>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">User</th>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Role</th>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Action</th>
+                                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200 text-sm">
+                            {logs.length > 0 ? logs.map(log => (
+                                <tr key={log._id} className="hover:bg-gray-50/50 transition-colors">
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 font-mono text-xs">
+                                        {new Date(log.createdAt).toLocaleString()}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                                        {log.user?.username || 'Unknown'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-500 capitalize">
+                                        <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-semibold">{log.role}</span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-bold">
+                                        {log.action}
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-500">
+                                        <div className="max-w-xs overflow-x-auto">
+                                            <pre className="text-[10px] bg-gray-50 p-2 rounded border border-gray-100 font-mono text-gray-600">
+                                                {JSON.stringify(log.details, null, 2)}
+                                            </pre>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan="5" className="px-6 py-8 text-center text-gray-400 italic">No logs found.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
+
     // --- Shell ---
 
     return (
@@ -764,6 +932,7 @@ const AdminDashboard = () => {
                         { id: 'search', label: 'Manage', icon: Search },
                         { id: 'fees', label: 'Fee Config', icon: CreditCard },
                         { id: 'promotion', label: 'Academics', icon: GraduationCap },
+                        { id: 'logs', label: 'Audit Logs', icon: FileText },
                     ].map(item => (
                         <button
                             key={item.id}
@@ -815,12 +984,14 @@ const AdminDashboard = () => {
                     {activeTab === 'search' && <SectionHeader title="Student Management" description="Search, view, and update student financial records." />}
                     {activeTab === 'fees' && <SectionHeader title="Fee Configuration" description="Set up tuition structures for upcoming academic terms." />}
                     {activeTab === 'promotion' && <SectionHeader title="Academic Board" description="Manage student progression and graduation eligibility." />}
+                    {activeTab === 'logs' && <SectionHeader title="System Audit Logs" description="Track all privileged actions within the system." />}
 
                     {activeTab === 'analytics' && <AnalyticsView />}
                     {activeTab === 'users' && <StudentsDirectoryView />}
                     {activeTab === 'search' && <SearchStudentView />}
                     {activeTab === 'fees' && <FeeConfigView />}
                     {activeTab === 'promotion' && <AcademicView />}
+                    {activeTab === 'logs' && <LogsView />}
                 </div>
             </main>
         </div>

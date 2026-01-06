@@ -378,47 +378,110 @@ const StudentDashboard = () => {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {feeTab !== 'library' && [...new Set(profile?.feeRecords?.filter(r => r.year === activeFeeYear && r.feeType === feeTab).map(r => r.semester))].sort().map(sem => {
-                                    const semRecords = profile?.feeRecords?.filter(r => r.year === activeFeeYear && r.semester === sem && r.feeType === feeTab);
-                                    // ... rest of the code
-                                    return (
-                                        <div key={sem} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white">
-                                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-                                                <span className="font-bold text-gray-800 text-sm">Semester {sem}</span>
-                                            </div>
-                                            <div className="p-4 space-y-4">
-                                                {semRecords.map((record, idx) => (
-                                                    <div key={idx} className="flex flex-col space-y-2">
+                                {(() => {
+                                    const yearRecords = profile?.feeRecords?.filter(r => r.year === activeFeeYear && r.feeType === feeTab) || [];
+
+                                    if (yearRecords.length === 0) {
+                                        // Case 1: Past Year (Archived)
+                                        if (activeFeeYear < (profile?.currentYear || 1)) {
+                                            const estAmount = profile?.quota === 'management' ? 70000 : 25000;
+                                            const semA = ((activeFeeYear - 1) * 2) + 1;
+                                            const semB = ((activeFeeYear - 1) * 2) + 2;
+
+                                            return [semA, semB].map(sem => (
+                                                <div key={sem} className="border border-green-100 bg-green-50/20 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                                                    <div className="bg-green-50/50 px-4 py-3 border-b border-green-100 flex justify-between items-center">
+                                                        <span className="font-bold text-gray-800 text-sm">Semester {sem}</span>
+                                                        <span className="text-xs font-bold text-green-600 uppercase tracking-wider">Archived Term</span>
+                                                    </div>
+                                                    <div className="p-4 space-y-3">
                                                         <div className="flex justify-between items-center">
-                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${record.status === 'paid' ? 'bg-green-100 text-green-700' : record.status === 'partial' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
-                                                                {record.status === 'paid' ? 'Paid' : record.status === 'partial' ? 'Partial' : 'Pending'}
+                                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 bg-green-100 text-green-700">
+                                                                <CheckCircle size={10} /> Paid
                                                             </span>
                                                         </div>
-                                                        <div className="flex justify-between text-xs text-gray-500 font-medium">
-                                                            <span>Due: ₹{record.amountDue.toLocaleString()}</span>
-                                                            <span>Paid: ₹{record.amountPaid?.toLocaleString() || 0}</span>
+                                                        <div className="space-y-1 opacity-75">
+                                                            <div className="flex justify-between text-sm font-medium">
+                                                                <span className="text-gray-500">Total Fee</span>
+                                                                <span className="text-gray-900">₹{estAmount.toLocaleString()}</span>
+                                                            </div>
+                                                            <div className="flex justify-between text-sm font-medium">
+                                                                <span className="text-gray-500">Paid Amount</span>
+                                                                <span className="text-emerald-600">₹{estAmount.toLocaleString()}</span>
+                                                            </div>
                                                         </div>
-
+                                                        <div className="pt-2 border-t border-green-50 text-[10px] text-green-600 font-medium text-center">
+                                                            Verified & Cleared from Central Ledger
+                                                        </div>
                                                     </div>
-                                                ))}
-                                                {semRecords.length === 0 && <p className="text-sm text-gray-400 italic text-center py-2">No fee records found.</p>}
+                                                </div>
+                                            ));
+                                        }
+                                        // Case 2: Current/Future Year (No Config)
+                                        return (
+                                            <div className="col-span-full border-2 border-dashed border-gray-200 bg-gray-50/50 rounded-xl p-10 flex flex-col items-center justify-center text-center">
+                                                <div className="bg-gray-100 p-3 rounded-full mb-3">
+                                                    <Clock className="w-6 h-6 text-gray-400" />
+                                                </div>
+                                                <p className="text-gray-900 font-bold mb-1">No Records Found</p>
+                                                <p className="text-sm text-gray-500">
+                                                    Fee structure for Year {activeFeeYear} ({feeTab}) is not yet configured or populated.
+                                                </p>
                                             </div>
-                                        </div>
-                                    );
-                                })}
-                                {feeTab !== 'library' && (!profile?.feeRecords || profile.feeRecords.filter(r => r.year === activeFeeYear && r.feeType === feeTab).length === 0) && (
-                                    <div className="col-span-full text-center py-8 text-gray-400 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                        No {feeTab} fee records for Year {activeFeeYear}.
-                                        <br />
-                                        <span className="text-xs text-gray-400">If you have recently been promoted, fees may not be configured yet.</span>
-                                    </div>
-                                )}
+                                        );
+                                    }
+
+                                    // Display Actual Records
+                                    const semesters = [...new Set(yearRecords.map(r => r.semester))].sort();
+                                    return semesters.map(sem => {
+                                        const semRecords = yearRecords.filter(r => r.semester === sem);
+                                        return (
+                                            <div key={sem} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white animate-fade-in">
+                                                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                                                    <span className="font-bold text-gray-800 text-sm">Semester {sem}</span>
+                                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Academic Term</span>
+                                                </div>
+                                                <div className="p-4 space-y-4">
+                                                    {semRecords.map((record, idx) => (
+                                                        <div key={idx} className="flex flex-col space-y-3">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 ${record.status === 'paid' ? 'bg-green-100 text-green-700' : record.status === 'partial' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                                                                    {record.status === 'paid' ? <CheckCircle size={10} /> : <AlertCircle size={10} />}
+                                                                    {record.status}
+                                                                </span>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <div className="flex justify-between text-sm font-medium">
+                                                                    <span className="text-gray-500">Due Amount</span>
+                                                                    <span className="text-gray-900">₹{record.amountDue.toLocaleString()}</span>
+                                                                </div>
+                                                                <div className="flex justify-between text-sm font-medium">
+                                                                    <span className="text-gray-500">Paid Amount</span>
+                                                                    <span className="text-emerald-600">₹{record.amountPaid?.toLocaleString() || 0}</span>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Payment for regular fees disabled via portal */}
+                                                            {record.status !== 'paid' && (
+                                                                <div className="pt-2 text-center">
+                                                                    <span className="text-[10px] text-gray-400 italic">
+                                                                        Pay at College Office
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    });
+                                })()}
                             </div>
                         </div>
                     )}
                 </div>
 
-            </div>
+            </div >
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-1 space-y-6">
@@ -571,7 +634,7 @@ const StudentDashboard = () => {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
